@@ -4,7 +4,7 @@ import { WalletDisconnectButton, WalletModalProvider, WalletMultiButton } from "
 function App() {
   const RPC = import.meta.env.VITE_RPC_URL;
 
-  const {authUser, isLoading} = useAuthUser();
+  // const {authUser, isLoading} = useAuthUser();
 
   return (
     <div>
@@ -13,12 +13,12 @@ function App() {
           <WalletModalProvider>
             {/* connect and disconnect button */}
             <div className="flex justify-between items-center ">
-              <WalletMultiButton />
-              <WalletDisconnectButton />
-              {/* other componenets here */}
-              <div>
-
+              <div className="flex justify-evenly gap-4 items-center w-full p-4">
+                <WalletMultiButton />
+                <WalletDisconnectButton />
               </div>
+              {/* other componenets here */}
+              <div></div>
 
             </div>
           </WalletModalProvider>
