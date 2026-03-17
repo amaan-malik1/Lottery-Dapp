@@ -57,7 +57,7 @@ pub mod lottery_contract{
         let buyer = &mut ctx.accounts.buyer;
 
         //if checks
-        if lottery.winnner_id.is_some() {
+        if lottery.winner_id.is_some() {
             return err!(LotteryError::WinnerAlreadyExisted);           
         }
 
@@ -88,6 +88,30 @@ pub mod lottery_contract{
 
         Ok(())
     }
+
+    //pick winner
+    pub fn pick_winner(ctx:Context<PickWinner>) -> Result<()>{
+        let lottery = &mut ctx.accounts.lottery;
+        
+        let clock = Clock::get()?;
+
+        // Pick a psuedo-random winner
+        let pseudo_random_number = ((u64::from_le_bytes(
+            <[u8; 8]>::try_from(&hash(&clock.unix_timestamp.to_be_bytes()).to_bytes()[..8])
+                .unwrap(),
+        )) * clock.slot
+            % u32::MAX as u64) as u32;
+
+        require!(lottery.last_ticket_id > 0, LotteryError::NoTickets);
+        let winner_id = (pseudo_random_number % lottery.last_ticket_id) + 1;
+        lottery.winner_id = Some(winner_id);
+
+        msg!("Winner id:{}", winner_id);
+
+        Ok(())
+        
+    }
+
 }
 
 #[derive(Accounts)]
@@ -143,7 +167,7 @@ pub struct Lottery{
     pub authority:Pubkey,
     pub ticket_price:u64,
     pub last_ticket_id:u32,
-    pub winnner_id:Option<u32>,
+    pub winner_id:Option<u32>,
     pub claimed:bool,
 }
 
@@ -181,4 +205,17 @@ pub struct Ticket{
     pub id:u32,
     authority:Pubkey,
     lottery_id:u32,
+}
+
+#[derive(Accounts)]
+#[instruction(lottery_id: u32)]
+pub struct PickWinner<'info>{
+    #[account(
+        mut,
+        seeds = [LOTTERY_SEED.as_bytes(), &lottery_id.to_le_bytes()],
+        bump,
+        has_one = authority,
+    )]
+    pub lottery: Account<'info, Lottery>,
+    pub authority: Signer<'info>,
 }
