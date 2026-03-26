@@ -112,6 +112,43 @@ pub mod lottery_contract{
         
     }
 
+    pub fn claim_prize(ctx:Context<ClaimPrize>, _lottery_id:u32, _ticket_id:u32) -> Result<()>{
+        let lottery =&mut ctx.accounts.lottery;
+        let ticket = &mut ctx.accounts.ticket;
+        let winner = &mut ctx.accounts.authority;
+
+        if lottery.claimed {
+            return err!(LotteryError::AlreadyClaimed);        
+        }
+
+        match lottery.winner_id {
+            Some(winner_id) => {
+                if winner_id != ticket.id {
+                    return err!(LotteryError::InvalidWinner)
+                }
+            }
+
+            None => return err!(LotteryError::WinnerNotChosen)
+        }
+
+        //transfer the lottery prize from lottery PDA to winner
+        let total_prize = lottery.ticket_price.checked_mul(lottery.last_ticket_id.into()).unwrap();
+
+        **lottery.to_account_info().try_borrow_mut_lamports()? -= total_prize;  //reduce the prize amount from PDA 
+        **winner.to_account_info().try_borrow_mut_lamports()? += total_prize;   //add the amount to the winner 
+
+        lottery.claimed = true;
+
+        msg!("Winner: {} claimed {} money from the lottery id: {} whose ticket id: {}",
+            winner.key(),
+            total_prize,
+            lottery.id, 
+            ticket.id,
+        );
+
+        Ok(())
+    }
+
 }
 
 #[derive(Accounts)]
@@ -218,4 +255,32 @@ pub struct PickWinner<'info>{
     )]
     pub lottery: Account<'info, Lottery>,
     pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(lottery_id: u32)]
+pub struct ClaimPrize<'info>{
+    #[account(
+        mut,
+        seeds = [LOTTERY_SEED.as_bytes(), &lottery_id.to_le_bytes()],
+        bump,
+    )]
+    pub lottery:Account<'info, Lottery>,
+
+    #[account(
+        seeds = [
+            TICKET_SEED.as_bytes(),
+            lottery.key().as_ref(),
+            &last_ticket_id.to_le_bytes,
+        ],
+        bump,
+        has_one = authority,
+    )]
+    pub ticket:Account<'info, Ticket>,
+
+    #[account(mut)]
+    pub authority:Signer<'info>,
+
+    pub system_program:Program<'info, System>
+
 }
