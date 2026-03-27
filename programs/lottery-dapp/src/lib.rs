@@ -90,7 +90,7 @@ pub mod lottery_contract{
     }
 
     //pick winner
-    pub fn pick_winner(ctx:Context<PickWinner>) -> Result<()>{
+   pub fn pick_winner(ctx:Context<PickWinner>, lottery_id: u32) -> Result<()>{
         let lottery = &mut ctx.accounts.lottery;
         
         let clock = Clock::get()?;
@@ -240,8 +240,8 @@ pub struct BuyTicket<'info>{
 #[account]
 pub struct Ticket{
     pub id:u32,
-    authority:Pubkey,
-    lottery_id:u32,
+    pub authority:Pubkey,
+    pub lottery_id:u32,
 }
 
 #[derive(Accounts)]
@@ -258,7 +258,7 @@ pub struct PickWinner<'info>{
 }
 
 #[derive(Accounts)]
-#[instruction(lottery_id: u32)]
+#[instruction(lottery_id: u32, ticket_id: u32)]
 pub struct ClaimPrize<'info>{
     #[account(
         mut,
@@ -271,7 +271,7 @@ pub struct ClaimPrize<'info>{
         seeds = [
             TICKET_SEED.as_bytes(),
             lottery.key().as_ref(),
-            &last_ticket_id.to_le_bytes,
+            &ticket.id.to_le_bytes(),
         ],
         bump,
         has_one = authority,
