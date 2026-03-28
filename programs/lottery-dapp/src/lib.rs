@@ -51,7 +51,7 @@ pub mod lottery_contract{
     }
 
     //buy ticket
-    pub fn buy_ticket(ctx:Context<BuyTicket>, lottery_id:u32) -> Result<()>{
+        pub fn buy_ticket(ctx:Context<BuyTicket>, lottery_id:u32) -> Result<()>{
         let lottery = &mut ctx.accounts.lottery;
         let ticket = &mut ctx.accounts.ticket;
         let buyer = &mut ctx.accounts.buyer;
